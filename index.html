@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div style="position: relative; display: inline-block;">
+  <img src="img.png" id="myImage" style="display: block; width: 100%; height: auto;">
+  <canvas id="myCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+  </canvas>
+</div>
+
+<script>
+
+let image = document.getElementById('myImage');
+let canvas = document.getElementById('myCanvas');
+canvas.width = image.clientWidth;
+canvas.height = image.clientHeight;
+
+let ctx = canvas.getContext('2d');
+let points = [];
+let curves = []; 
+let draggable = null;
+const DRAGGABLE_DISTANCE = 20;
+
+function drawCurve() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#FFFFFF"; // white color
+   
+    if (points.length === 3) {
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        ctx.quadraticCurveTo(points[1].x, points[1].y, points[2].x, points[2].y);
+        ctx.stroke();
+    } else if (points.length === 2) {
+      console.log(points);
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        ctx.lineTo(points[1].x, points[1].y);
+        ctx.stroke();
+    }
+
+    for (let curve of curves) {
+        if (curve.length === 3) {
+            ctx.beginPath();
+            ctx.moveTo(curve[0].x, curve[0].y);
+            ctx.quadraticCurveTo(curve[1].x, curve[1].y, curve[2].x, curve[2].y);
+            ctx.stroke();
+        } else if (curve.length === 2) {
+            ctx.beginPath();
+            ctx.moveTo(curve[0].x, curve[0].y);
+            ctx.lineTo(curve[1].x, curve[1].y);
+            ctx.stroke();
+        }
+    }
+
+    drawPoints();
+}
+
+function drawPoints() {
+    for (let point of points) {
+        drawPoint(point.x, point.y);
+    }
+
+    for (let curve of curves) {
+        for (let point of curve) {
+            drawPoint(point.x, point.y);
+        }
+    }
+}
+
+function drawPoint(x, y) {
+    ctx.beginPath();
+    ctx.moveTo(x, y - 5);
+    ctx.lineTo(x + 5, y);
+    ctx.lineTo(x, y + 5);
+    ctx.lineTo(x - 5, y);
+    ctx.closePath();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fill();
+}
+
+function distance(x1, y1, x2, y2) {
+    let dx = x2 - x1;
+    let dy = y2 - y1;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+canvas.onmousedown = function(e) {
+    let x = e.clientX - canvas.offsetLeft;
+    let y = e.clientY - canvas.offsetTop;
+
+    let clickedPoint = null;
+    for (let curve of curves) {
+        for (let i = 0; i < curve.length; i++) {
+            if (distance(x, y, curve[i].x, curve[i].y) < DRAGGABLE_DISTANCE) {
+                clickedPoint = { curve: curve, index: i };
+                break;
+            }
+        }
+    }
+
+    if (clickedPoint !== null) {
+        draggable = clickedPoint;
+    } else {
+        if (points.length === 0) {
+          console.log('1');
+            points.push({ x: x, y: y });
+            points.push({ x: x, y: y });
+        } else if (points.length === 2) {
+          console.log('2');
+            points[1] = { x: x, y: y };
+            let midX = (points[0].x + points[1].x) / 2;
+            let midY = (points[0].y + points[1].y) / 2;
+            points.splice(1, 0, { x: midX, y: midY });
+            curves.push(points);
+            points = [];
+        }
+    }
+
+    drawCurve();
+};
+
+
+canvas.onmousemove = function(e) {
+    if (points.length === 2 && draggable === null) {
+        points[1].x = e.clientX - canvas.offsetLeft;
+        points[1].y = e.clientY - canvas.offsetTop;
+    } else if (draggable !== null) {
+        let x = e.clientX - canvas.offsetLeft;
+        let y = e.clientY - canvas.offsetTop;
+        draggable.curve[draggable.index] = { x: x, y: y };
+    }
+    drawCurve();
+};
+
+canvas.onmouseup = function() {
+    draggable = null;
+};
+</script>
+
+</body>
+</html>
